@@ -58,13 +58,12 @@ if (@ARGV != 3) {
 			
 				#If so, for each location, split and look for the hit flag
 				foreach(@{"$cur_chr"}) {
-					
-					@region_split = split(/\t/, $_);
+					$region = $_;
+					@region_split = split(/\t/,$region);
 					$hit_check = @region_split[-1];
-					
 					#if the hit flag is a 1, output the region.
 					if($hit_check == 1) {
-						$out_line = substr(@{"$cur_chr"}[$i], 0, -2);
+						$out_line = substr($region, 0, -2);
 						print OUTPUT $out_line . "\n";
 					}
 					
@@ -122,7 +121,7 @@ if (@ARGV != 3) {
 	#everything is properly output.
 	
 	if(@{"$cur_chr"} > 0) {
-			
+		
 		#If so, for each location, split and look for the hit flag
 		foreach(@{"$cur_chr"}) {
 			
@@ -141,6 +140,5 @@ if (@ARGV != 3) {
 	
 	close(BED);
 	close(OUTPUT);
-	
 	
 }

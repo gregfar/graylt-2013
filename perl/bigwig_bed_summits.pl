@@ -27,7 +27,7 @@ if(@ARGV != 3) {
 	
 	open(INPUT, "<$in_bed");
 	open(OUTPUT, ">$out_file");
-	
+
 	# put a header in the output, since it's hard to keep track of all the different values
 	print OUTPUT "chr\tstart\tend\tname\tscore\tstrand\tmax_start\tmax_end\tmax_length\tmax_score\tmax_center\tmax_center_rel\n";
 	

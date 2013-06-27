@@ -1,10 +1,11 @@
 #!/usr/bin/perl
-# refseq_tss_regions.pl - generates a BED file with locations around each TSS in the UCSC RefSeq Genes table.
-# usage: refseq_tss_regions.pl in_table out_bed distance
+# refseq_tss_region.pl - generates a BED file with TSS regions +/- the given distance from
+# the RefSeq knownCannonical table.
+# usage: refseq_tss_region.pl in_table out_bed distance
 
 if(@ARGV != 3) {
 
-	print "usage: refseq_tss_regions.pl in_table out_file distance\n";
+	print "usage: refseq_tss_region.pl in_table out_bed distance\n";
 
 } else {
 	
@@ -12,11 +13,6 @@ if(@ARGV != 3) {
 	$in_file = @ARGV[0];
 	$out_file = @ARGV[1];
 	$distance = @ARGV[2];
-	
-	#set which exon and intron to retrieve for the subroutines.
-	$distance = 1000;
-	$exon = 1;
-	$intron = 1;
 
 	#subroutines for retrieving TSS regions, first exon, and first intron:
 	sub get_tss_region {
@@ -64,7 +60,7 @@ if(@ARGV != 3) {
 		
 		#next, print out the gene name, a score (0 as a placeholder), and the strand. This makes the TSS
 		#region look like a BED formatted file, which will retain compatibility with my other scripts.
-		print OUTPUT "\t" . @line_split[12] . "\t0\t" . @line_split[3] . "\t";	
+		print OUTPUT "\t" . @line_split[12] . "\t0\t" . @line_split[3] . "\n";
 		
 	}
 	
