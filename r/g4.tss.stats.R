@@ -1,3 +1,5 @@
+args <- commandArgs(trailingOnly = T)
+
 # check to see if the plyr package is installed.
 if("plyr" %in% rownames(installed.packages()) == F) {
   install.packages("plyr")
@@ -5,26 +7,27 @@ if("plyr" %in% rownames(installed.packages()) == F) {
   library(plyr)
 }
 
-# read the TSS 1kb region table, XPB summit, XPD summit, and ORB expression tables
-tss <- read.table("tss_1kb.bed",col.names=c("chr","start","end","name","score","strand"),
-                         colClasses=c("character","numeric","numeric","character","numeric","factor"))
-xpb.peaks <- read.table("xpb_peaks_g4.txt",header=T,
-                        colClasses=c("character","numeric","numeric","character","numeric","factor","numeric"))
-xpd.peaks <- read.table("xpd_peaks_g4.txt",header=T,
-                        colClasses=c("character","numeric","numeric","character","numeric","factor","numeric"))
-xpb.regions <- read.table("xpb_regions_g4.txt",header=T,
-                          colClasses=c("character","numeric","numeric","character","numeric","factor","numeric"))
-xpd.regions <- read.table("xpd_regions_g4.txt",header=T,
-                          colClasses=c("character","numeric","numeric","character","numeric","factor","numeric"))
-xpb.summits <- read.table("xpb_summits.bed",col.names=c("chr","start","end","name","score","strand"),
-                          colClasses=c("character","numeric","numeric","character","numeric","factor"),skip=1)
-xpd.summits <- read.table("xpd_summits.bed",col.names=c("chr","start","end","name","score","strand"),
-                          colClasses=c("character","numeric","numeric","character","numeric","factor"),skip=1)
-g4 <- read.table("g4-12_overlaps.txt",header=T,
-                 colClasses=c("character","numeric","numeric","character","numeric","factor","numeric","numeric","numeric","numeric","numeric"))
-genome <- read.table("antigap.bed",col.names=c("chr","start","end","score"),
-                     colClasses=c("character","numeric","numeric","numeric"))
+peak.classes <- c("character","numeric","numeric","character","numeric","factor","numeric")
+bed.names <- c("chr","start","end","name","score","strand")
+bed.classes <- c("character","numeric","numeric","character","numeric","factor")
 
+# read the TSS 1kb region table, XPB summit, XPD summit, and ORB expression tables
+tss <- read.table(args[1],col.names=bed.names,colClasses=bed.classes)
+xpb.peaks <- read.table(args[2],header=T,colClasses=peak.classes)
+xpd.peaks <- read.table(args[3],header=T,colClasses=peak.classes)
+xpb.regions <- read.table(args[4],header=T,colClasses=peak.classes)
+xpd.regions <- read.table(args[5],header=T,colClasses=peak.classes)
+xpb.summits <- read.table(args[6],col.names=bed.names,colClasses=bed.classes,skip=1)
+xpd.summits <- read.table(args[7],col.names=bed.names,colClasses=bed.classes,skip=1)
+g4 <- read.table(args[8],header=T,
+                 colClasses=c("character","numeric","numeric","character","numeric","factor","numeric","numeric","numeric","numeric","numeric"))
+# For G4 motifs, I need to do the merge in Perl, because there are too many regions for this
+# to take a reasonable amount of time.
+cat.g4 <- read.table(args[9],col.names=c("chr","start","end","name","score","strand"),
+                 colClasses=c("character","numeric","numeric","character","numeric","factor"))
+genome <- read.table(args[10],col.names=c("chr","start","end","score"),
+                     colClasses=c("character","numeric","numeric","numeric"))
+results <- args[11]
 
 # this function will flag overlapping regions with a 1
 bed.flag <- function(bed1,bed2) {
@@ -118,15 +121,21 @@ xpb.summits <- bed.flag(xpb.summits,tss)
 names(xpb.summits)[7] <- "tss"
 xpb.peaks <- cbind(xpb.peaks,tss=0)
 xpb.peaks$tss[xpb.peaks$name %in% xpb.summits$name[xpb.summits$tss == 1]] <- 1
+write.table(xpb.peaks,paste(results,"/xpb_peaks_g4_tss.txt",sep=""),sep="\t",quote=F,row.names=F)
+
 xpb.regions <- cbind(xpb.regions,tss=0)
 xpb.regions$tss[xpb.regions$name %in% xpb.summits$name[xpb.summits$tss == 1]] <- 1
+write.table(xpb.regions,paste(results,"/xpb_regions_g4_tss.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 xpd.summits <- bed.flag(xpd.summits,tss)
 names(xpd.summits)[7] <- "tss"
 xpd.peaks <- cbind(xpd.peaks,tss=0)
 xpd.peaks$tss[xpd.peaks$name %in% xpd.summits$name[xpd.summits$tss == 1]] <- 1
+write.table(xpd.peaks,paste(results,"/xpd_peaks_g4_tss.txt",sep=""),sep="\t",quote=F,row.names=F)
+
 xpd.regions <- cbind(xpd.regions,tss=0)
 xpd.regions$tss[xpd.regions$name %in% xpd.summits$name[xpd.summits$tss == 1]] <- 1
+write.table(xpd.regions,paste(results,"/xpd_regions_g4_tss.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 # Flagging of G4s for TSS, XPB, and XPD was done previously with perl, because the G4 table is so large.
 
@@ -134,34 +143,30 @@ xpd.regions$tss[xpd.regions$name %in% xpd.summits$name[xpd.summits$tss == 1]] <-
 xpb.peak.counts <- count(xpb.peaks,c("tss","g4"))
 xpb.peak.counts <- cbind(xpb.peak.counts,percent=0)
 xpb.peak.counts$percent <- round((xpb.peak.counts$freq/sum(xpb.peak.counts$freq))*100,2)
-write.table(xpb.peak.counts,"xpb_peaks_g4_tss_counts.txt",sep="\t",quote=F,row.names=F)
+write.table(xpb.peak.counts,paste(results,"/xpb_peaks_g4_tss_counts.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 xpd.peak.counts <- count(xpd.peaks,c("tss","g4"))
 xpd.peak.counts <- cbind(xpd.peak.counts,percent=0)
 xpd.peak.counts$percent <- round((xpd.peak.counts$freq/sum(xpd.peak.counts$freq))*100,2)
-write.table(xpd.peak.counts,"xpd_peaks_g4_tss_counts.txt",sep="\t",quote=F,row.names=F)
+write.table(xpd.peak.counts,paste(results,"/xpd_peaks_g4_tss_counts.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 xpb.region.counts <- count(xpb.regions,c("tss","g4"))
 xpb.region.counts <- cbind(xpb.region.counts,percent=0)
 xpb.region.counts$percent <- round((xpb.region.counts$freq/sum(xpb.region.counts$freq))*100,2)
-write.table(xpb.region.counts,"xpb_regions_g4_tss_counts.txt",sep="\t",quote=F,row.names=F)
+write.table(xpb.region.counts,paste(results,"/xpb_regions_g4_tss_counts.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 xpd.region.counts <- count(xpd.regions,c("tss","g4"))
 xpd.region.counts <- cbind(xpd.region.counts,percent=0)
 xpd.region.counts$percent <- round((xpd.region.counts$freq/sum(xpd.region.counts$freq))*100,2)
-write.table(xpd.region.counts,"xpd_regions_g4_tss_counts.txt",sep="\t",quote=F,row.names=F)
+write.table(xpd.region.counts,paste(results,"/xpd_regions_g4_tss_counts.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 g4.counts <- count(g4,c("tss","xpb.peaks","xpd.peaks"))
 g4.counts <- cbind(g4.counts,percent=0)
 g4.counts$percent <- round((g4.counts$freq/sum(g4.counts$freq))*100,2)
-write.table(g4.counts,"g4_xpb_xpd_tss_counts.txt",sep="\t",quote=F,row.names=F)
+write.table(g4.counts,paste(results,"/g4_xpb_xpd_tss_counts.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 # merge the overlapping tss regions to calculate coverage
 cat.tss <- bed.merge(tss)
-# For G4 motifs, I need to do the merge in Perl, because there are too many regions for this
-# to take a reasonable amount of time.
-cat.g4 <- read.table("cat_g4-12.bed",col.names=c("chr","start","end","name","score","strand"),
-                 colClasses=c("character","numeric","numeric","character","numeric","factor"))
 
 # get just the xpb, xpd, and g4 regions that overlap TSS for coverage calculations
 xpb.peaks.tss <- bed.overlap(xpb.peaks[xpb.peaks$tss == 1,],cat.tss)
@@ -201,9 +206,9 @@ coverage.results <- data.frame(region=c("all","tss","not.tss"),genome=c(genome.c
                       xpb.region=c(xpb.region.cov,xpb.region.tss.cov,xpb.region.not.tss.cov),
                       xpd.region=c(xpd.region.cov,xpd.region.tss.cov,xpd.region.not.tss.cov),
                       g4=c(g4.cov,g4.tss.cov,g4.not.tss.cov))
-write.table(coverage.results,"tss_coverage_results.txt",sep="\t",quote=F,row.names=F)
+write.table(coverage.results,paste(results,"/tss_coverage_results.txt",sep=""),sep="\t",quote=F,row.names=F)
 
 percent.coverage.results <- coverage.results
 percent.coverage.results[,2:7] <- percent.coverage.results[,2:7] / coverage.results$genome
 percent.coverage.results[,2:7] <- round(percent.coverage.results[,2:7] * 100,2)
-write.table(percent.coverage.results,"tss_percent_coverage_results.txt",sep="\t",quote=F,row.names=F)
+write.table(percent.coverage.results,paste(results,"/tss_percent_coverage_results.txt",sep=""),sep="\t",quote=F,row.names=F)

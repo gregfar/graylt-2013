@@ -6,13 +6,14 @@
 #BED regions cannot overlap.
 #This script will also have problems if the BED regions are very close together.
 
-if(@ARGV != 3) {
-	print "usage: bed_retrieve_fasta.pl in_bed in_fasta_dir out_fasta\n";
+if(@ARGV != 4) {
+	print "usage: bed_retrieve_fasta.pl in_bed in_fasta_dir out_fasta out_scores\n";
 } else {
 	
 	$in_bed = @ARGV[0];
 	$in_fasta_dir =  @ARGV[1];
 	$out_fasta = @ARGV[2];
+	$out_scores = @ARGV[3];
 	
 	# Read the BED file, split the file into separate arrays for each chromosome
 	# and make an array containing all of the chromosome names.
@@ -144,19 +145,37 @@ if(@ARGV != 3) {
 	}
 	
 	open(OUTPUT, ">$out_fasta");
+	open(OUT_SCORES, ">$out_scores");
 
 	foreach(@out_array) {
 		$out_line = $_;
 		($out_name,$out_strand,$out_seq) = split(/\t/,$out_line);
+		$l = length($out_seq);
 		
-		if($out_strand eq "+") {
-			print OUTPUT ">" . $out_name . "\n" . $out_seq . "\n";
-		} elsif ($out_strand eq "-") {
-			
-			$revcomp = reverse($out_seq);
-			$revcomp =~ tr/ACGTacgt/TGCAtgca/;
-			print OUTPUT ">" . $out_name . "\n" . $revcomp . "\n";
-			
+
+		if($l > 0) {
+
+			$c = grep /[GgCc]/, split(//,$out_seq);
+			$out_percent = $c / $l;
+
+			$n = grep /[Nn]/, split(//,$out_seq);
+
+			if($n > 0) {
+				print OUT_SCORES $out_name . "\tN\n"
+			} else {
+				print OUT_SCORES $out_name . "\t" . $out_percent . "\n";
+			}
+
+			if($out_strand eq "+") {
+				print OUTPUT ">" . $out_name . "\n" . $out_seq . "\n";
+			} elsif ($out_strand eq "-") {
+				
+				$revcomp = reverse($out_seq);
+				$revcomp =~ tr/ACGTacgt/TGCAtgca/;
+				print OUTPUT ">" . $out_name . "\n" . $revcomp . "\n";
+				
+			}
+
 		}
 		
 	}
